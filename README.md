@@ -875,7 +875,7 @@ pub struct WithdrawTokens<'info> {
         seeds = [b"pool", withdraw_destination.key().as_ref()],
         bump = pool.bump,                                        
     )]
-    pool: Account<'info, TokenPool>,
+    pool: Account<'info, TokenPool>, // Authority for the vault
     #[account(mut)]
     vault: Account<'info, TokenAccount>,
     #[account(mut)]
