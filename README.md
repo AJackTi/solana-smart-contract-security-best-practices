@@ -823,11 +823,13 @@ pub mod pda_sharing_insecure {
 
 #[derive(Accounts)]
 pub struct WithdrawTokens<'info> {
-    #[account(has_one = vault, has_one = withdraw_destination)]
+    #[account(
+        seeds = [b"pool", pool.mint.as_ref()],
+        bump = pool.bump,                                        
+    )]
     pool: Account<'info, TokenPool>,
     vault: Account<'info, TokenAccount>,
     withdraw_destination: Account<'info, TokenAccount>,
-    authority: Signer<'info>,
     token_program: Program<'info, Token>,
 }
 
@@ -837,7 +839,7 @@ impl<'info> WithdrawTokens<'info> {
         let accounts = token::Transfer {
             from: self.vault.to_account_info(),
             to: self.withdraw_destination.to_account_info(),
-            authority: self.authority.to_account_info(),
+            authority: self.pool.to_account_info(),
         };
         CpiContext::new(program, accounts)
     }
@@ -845,9 +847,7 @@ impl<'info> WithdrawTokens<'info> {
 
 #[account]
 pub struct TokenPool {
-    vault: Pubkey,
     mint: Pubkey,
-    withdraw_destination: Pubkey,
     bump: u8,
 }
 ```
@@ -869,11 +869,17 @@ pub mod pda_sharing_secure {
 
 #[derive(Accounts)]
 pub struct WithdrawTokens<'info> {
-    #[account(has_one = vault, has_one = withdraw_destination)]
-    pool: Account<'info, TokenPool>,
+    #[account(
+        has_one = vault,
+        has_one = withdraw_destination,
+        seeds = [b"pool", withdraw_destination.key().as_ref()],
+        bump = pool.bump,                                        
+    )]
+    pool: Account<'info, TokenPool>, // Authority for the vault
+    #[account(mut)]
     vault: Account<'info, TokenAccount>,
+    #[account(mut)]
     withdraw_destination: Account<'info, TokenAccount>,
-    authority: Signer<'info>,
     token_program: Program<'info, Token>,
 }
 
@@ -883,7 +889,7 @@ impl<'info> WithdrawTokens<'info> {
         let accounts = token::Transfer {
             from: self.vault.to_account_info(),
             to: self.withdraw_destination.to_account_info(),
-            authority: self.authority.to_account_info(),
+            authority: self.pool.to_account_info(),
         };
         CpiContext::new(program, accounts)
     }
@@ -892,7 +898,6 @@ impl<'info> WithdrawTokens<'info> {
 #[account]
 pub struct TokenPool {
     vault: Pubkey,
-    mint: Pubkey,
     withdraw_destination: Pubkey,
     bump: u8,
 }
